@@ -1,0 +1,5 @@
+{
+  "name": "AI Microfinance Loan Manager",
+  "description": "An AI-enhanced microfinance loan management system to streamline client onboarding, risk profiling, loan creation, and repayment tracking for Microfinance Institutions. It features AI-driven risk scoring, smart loan term recommendations, and a comprehensive analytics dashboard.",
+  "requestFramePermissions": []
+}
