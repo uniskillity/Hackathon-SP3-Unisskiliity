@@ -1,15 +1,18 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { Client, Loan, View, InstallmentStatus } from './types';
 import { getInitialData } from './utils/initialData';
 import Header from './components/ui/Header';
-import Dashboard from './components/Dashboard';
 import ClientList from './components/ClientList';
-import ClientDetails from './components/ClientDetails';
-import AddClientModal from './components/modals/AddClientModal';
-import AddLoanModal from './components/modals/AddLoanModal';
 import Login from './components/Login';
 import { removeCache } from './utils/cache';
+import PageLoader from './components/ui/PageLoader';
+
+// --- Lazy Loaded Components ---
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const ClientDetails = lazy(() => import('./components/ClientDetails'));
+const AddClientModal = lazy(() => import('./components/modals/AddClientModal'));
+const AddLoanModal = lazy(() => import('./components/modals/AddLoanModal'));
+
 
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -184,25 +187,31 @@ const App: React.FC = () => {
             />
           </div>
           <div className="lg:col-span-2">
-            {renderContent()}
+             <Suspense fallback={<PageLoader />}>
+                {renderContent()}
+            </Suspense>
           </div>
         </div>
       </main>
 
-      {isAddClientModalOpen && (
-        <AddClientModal 
-          onClose={() => setAddClientModalOpen(false)}
-          onAddClient={handleAddClient}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isAddClientModalOpen && (
+          <AddClientModal 
+            onClose={() => setAddClientModalOpen(false)}
+            onAddClient={handleAddClient}
+          />
+        )}
+      </Suspense>
 
-      {isAddLoanModalOpen && selectedClient && (
-        <AddLoanModal
-          client={selectedClient}
-          onClose={() => setAddLoanModalOpen(false)}
-          onAddLoan={handleAddLoan}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isAddLoanModalOpen && selectedClient && (
+          <AddLoanModal
+            client={selectedClient}
+            onClose={() => setAddLoanModalOpen(false)}
+            onAddLoan={handleAddLoan}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

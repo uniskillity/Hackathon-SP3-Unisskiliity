@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Client, Loan, InstallmentStatus } from '../types';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
 import LoanCard from './LoanCard';
-import EditLoanModal from './modals/EditLoanModal';
+
+const EditLoanModal = lazy(() => import('./modals/EditLoanModal'));
 
 interface ClientDetailsProps {
   client: Client;
@@ -79,15 +80,17 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, loans, onAddLoan,
           <p className="text-center text-gray-500">This client has no active or past loans.</p>
         </Card>
       )}
-
-      {editModalState.isOpen && editModalState.loan && (
-        <EditLoanModal 
-          isOpen={editModalState.isOpen}
-          onClose={handleCloseEditModal}
-          loan={editModalState.loan}
-          onEditLoan={onEditLoan}
-        />
-      )}
+      
+      <Suspense fallback={null}>
+        {editModalState.isOpen && editModalState.loan && (
+          <EditLoanModal 
+            isOpen={editModalState.isOpen}
+            onClose={handleCloseEditModal}
+            loan={editModalState.loan}
+            onEditLoan={onEditLoan}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

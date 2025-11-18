@@ -3,11 +3,10 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Client, RiskScore, Loan, DefaultPrediction } from '../types';
 import { getCache, setCache } from '../utils/cache';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
 type ClientInfoForRisk = Omit<Client, 'id' | 'riskScore' | 'joinDate' | 'documents'>;
 
 export const getRiskScore = async (clientInfo: ClientInfoForRisk): Promise<RiskScore> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   try {
     const prompt = `
       Analyze the risk profile for a new microfinance client in Pakistan based on the following information.
@@ -62,6 +61,7 @@ export const getLoanRecommendation = async (riskScore: RiskScore, loanAmount: nu
         return cached;
     }
     
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
     try {
         const prompt = `
         A microfinance client with a "${riskScore}" risk score is applying for a loan of PKR ${loanAmount} for ${durationMonths} months.
@@ -108,6 +108,7 @@ export const getAIBasedDefaultPrediction = async (client: Client, loan: Loan): P
       return cached;
   }
     
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   try {
     const paidCount = loan.schedule.filter(i => i.status === 'Paid').length;
     const overdueCount = loan.schedule.filter(i => i.status === 'Overdue').length;
