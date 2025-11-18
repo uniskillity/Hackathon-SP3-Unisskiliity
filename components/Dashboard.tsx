@@ -1,7 +1,6 @@
-
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Client, Loan, RiskScore, LoanStatus } from '../types';
+import { Client, Loan, RiskScore } from '../types';
 import Card from './ui/Card';
 
 interface DashboardProps {
@@ -16,13 +15,15 @@ const COLORS: { [key in RiskScore]: string } = {
 };
 
 const StatCard: React.FC<{ title: string; value: string | number, icon: React.ReactNode }> = ({ title, value, icon }) => (
-    <Card className="flex items-center">
-        <div className="p-3 rounded-full bg-teal-100 text-teal-600 mr-4">
-            {icon}
-        </div>
-        <div>
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-800">{value}</p>
+    <Card>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ padding: '0.75rem', borderRadius: '9999px', backgroundColor: 'var(--color-teal-100)', color: 'var(--color-teal-600)', marginRight: '1rem' }}>
+                {icon}
+            </div>
+            <div>
+                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-gray-500)' }}>{title}</p>
+                <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-gray-800)' }}>{value}</p>
+            </div>
         </div>
     </Card>
 );
@@ -37,7 +38,7 @@ const LoanDisbursementChart: React.FC<{ loans: Loan[] }> = ({ loans }) => {
         
         return Object.entries(monthlyData)
             .map(([name, amount]) => ({ name, amount }))
-            .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+            .sort((a, b) => new Date(`1 ${a.name}`).getTime() - new Date(`1 ${b.name}`).getTime());
     }, [loans]);
 
     return (
@@ -71,25 +72,25 @@ const OfficerPerformance: React.FC<{ loans: Loan[] }> = ({ loans }) => {
     }, [loans]);
 
     return (
-        <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        <div className="table-container">
+            <table className="table">
+                <thead>
                     <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Officer</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Loans</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disbursed</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Defaulted</th>
+                        <th>Officer</th>
+                        <th>Total Loans</th>
+                        <th>Disbursed</th>
+                        <th>Active</th>
+                        <th>Defaulted</th>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                     {performanceData.map(officer => (
                         <tr key={officer.name}>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{officer.name}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{officer.totalLoans}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">PKR {officer.totalDisbursed.toLocaleString()}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{officer.active}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-sm text-red-600 font-medium">{officer.defaulted}</td>
+                            <td style={{fontWeight: 500, color: 'var(--color-gray-900)'}}>{officer.name}</td>
+                            <td>{officer.totalLoans}</td>
+                            <td>PKR {officer.totalDisbursed.toLocaleString()}</td>
+                            <td>{officer.active}</td>
+                            <td style={{color: 'var(--color-red-600)', fontWeight: 500}}>{officer.defaulted}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -102,7 +103,6 @@ const OfficerPerformance: React.FC<{ loans: Loan[] }> = ({ loans }) => {
 const Dashboard: React.FC<DashboardProps> = ({ clients, loans }) => {
 
   const totalClients = clients.length;
-  const totalLoans = loans.length;
   const activeLoans = loans.filter(loan => loan.status === 'Active').length;
   const completedLoans = loans.filter(loan => loan.status === 'Completed').length;
   const defaultedLoans = loans.filter(loan => loan.status === 'Defaulted').length;
@@ -122,15 +122,16 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, loans }) => {
 
   return (
     <div className="space-y-6">
-       <h2 className="text-2xl font-bold text-gray-700">Dashboard Overview</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+       <h2 className="page-title">Dashboard Overview</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem'}}>
         <StatCard title="Total Clients" value={totalClients} icon={<UsersIcon />} />
         <StatCard title="Active Loans" value={activeLoans} icon={<TrendingUpIcon />} />
         <StatCard title="Completed Loans" value={completedLoans} icon={<CheckCircleIcon />} />
         <StatCard title="Defaulted Loans" value={defaultedLoans} icon={<ExclamationCircleIcon />} />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* FIX: The 'lg' property is not a valid CSS property for inline styles. Replaced with a responsive grid layout using 'auto-fit' and 'minmax' to achieve a similar responsive behavior. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem'}}>
         <Card title="Client Risk Distribution">
           {riskDistribution.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -155,27 +156,31 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, loans }) => {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-gray-500)' }}>
                   <p>No client data available to display risk distribution.</p>
               </div>
           )}
         </Card>
         <Card title="Loan Disbursement Trend">
-            <LoanDisbursementChart loans={loans} />
+            <div className="card-body">
+                <LoanDisbursementChart loans={loans} />
+            </div>
         </Card>
       </div>
 
        <Card title="Officer Performance">
-            <OfficerPerformance loans={loans} />
+            <div className="card-body">
+              <OfficerPerformance loans={loans} />
+            </div>
        </Card>
     </div>
   );
 };
 
 // SVG Icons
-const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197m0 0A5.975 5.975 0 0112 13a5.975 5.975 0 013 5.197m-3-5.197a4 4 0 11-8 0" /></svg>;
-const TrendingUpIcon = () => <svg xmlns="http://www.w.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
-const CheckCircleIcon = () => <svg xmlns="http://www.w.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const ExclamationCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" style={{height: '1.5rem', width: '1.5rem'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197m0 0A5.975 5.975 0 0112 13a5.975 5.975 0 013 5.197m-3-5.197a4 4 0 11-8 0" /></svg>;
+const TrendingUpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" style={{height: '1.5rem', width: '1.5rem'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
+const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" style={{height: '1.5rem', width: '1.5rem'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const ExclamationCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" style={{height: '1.5rem', width: '1.5rem'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 
 export default Dashboard;

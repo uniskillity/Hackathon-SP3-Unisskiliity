@@ -45,8 +45,8 @@ const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({ isOpen, onClose
             <div className="space-y-4">
                 <p><strong>Amount Due:</strong> PKR {installment.amount.toLocaleString()}</p>
                 <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select id="status" value={status} onChange={e => setStatus(e.target.value as InstallmentStatus)} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+                    <label htmlFor="status" className="input-label">Status</label>
+                    <select id="status" value={status} onChange={e => setStatus(e.target.value as InstallmentStatus)} className="select">
                         <option value="Pending">Pending</option>
                         <option value="Paid">Paid</option>
                         <option value="Partially Paid">Partially Paid</option>
@@ -56,10 +56,10 @@ const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({ isOpen, onClose
                 {status === 'Partially Paid' && (
                     <div>
                         <Input id="paidAmount" label={`Amount Paid (Max: ${installment.amount})`} type="number" value={paidAmount} onChange={e => handleAmountChange(e.target.value)} required />
-                        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+                        {error && <p className="text-danger" style={{marginTop: '0.25rem'}}>{error}</p>}
                     </div>
                 )}
-                <div className="flex justify-end pt-4 space-x-3">
+                <div className="modal-footer" style={{marginTop: '1rem'}}>
                     <Button variant="secondary" onClick={onClose}>Cancel</Button>
 
                     <Button onClick={handleSubmit}>Update Payment</Button>

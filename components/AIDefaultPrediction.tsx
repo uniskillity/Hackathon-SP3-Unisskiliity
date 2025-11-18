@@ -23,21 +23,23 @@ const AIDefaultPrediction: React.FC<{ client: Client, loan: Loan }> = ({ client,
   if (loan.status !== 'Active') return null;
 
   return (
-    <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-md">
-      <h5 className="text-sm font-semibold text-indigo-800 mb-2">AI Default Prediction</h5>
-      {isLoading ? (
-        <div className="flex items-center space-x-2">
-          <Spinner size="sm" />
-          <span className="text-indigo-700 text-sm">Calculating risk...</span>
-        </div>
-      ) : prediction ? (
-        <div className="flex items-center space-x-3">
-          <Badge type={prediction.predictionLabel} />
-          <p className="text-gray-700 font-semibold">{prediction.predictionPercentage}% chance of default</p>
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500">Could not retrieve prediction.</p>
-      )}
+    <div className="alert alert-info" style={{marginTop: '1rem'}}>
+      <div>
+        <h5 className="alert-title" style={{marginBottom: '0.5rem'}}>AI Default Prediction</h5>
+        {isLoading ? (
+          <div className="flex items-center" style={{gap: '0.5rem'}}>
+            <Spinner size="sm" />
+            <span>Calculating risk...</span>
+          </div>
+        ) : prediction ? (
+          <div className="flex items-center" style={{gap: '0.75rem'}}>
+            <Badge type={prediction.predictionLabel} />
+            <p style={{color: 'var(--color-gray-700)', fontWeight: 600}}>{prediction.predictionPercentage}% chance of default</p>
+          </div>
+        ) : (
+          <p>Could not retrieve prediction.</p>
+        )}
+      </div>
     </div>
   );
 };

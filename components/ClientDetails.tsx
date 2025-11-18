@@ -16,6 +16,14 @@ interface ClientDetailsProps {
   onEditLoan: (loan: Loan) => void;
 }
 
+const ClientDetailItem: React.FC<{label: string; children: React.ReactNode}> = ({label, children}) => (
+    <div>
+        <p style={{fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-gray-500)'}}>{label}</p>
+        <p>{children}</p>
+    </div>
+);
+
+
 const ClientDetails: React.FC<ClientDetailsProps> = ({ client, loans, onAddLoan, onUpdatePayment, onUpdateLoanStatus, onEditLoan }) => {
   const [editModalState, setEditModalState] = useState<{ isOpen: boolean, loan: Loan | null }>({ isOpen: false, loan: null });
 
@@ -30,35 +38,37 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, loans, onAddLoan,
   return (
     <div className="space-y-6">
       <Card title="Client Profile">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <div className="md:col-span-2 flex justify-between items-start">
-                <div>
-                    <h4 className="text-2xl font-bold text-gray-800">{client.name}</h4>
-                    <p className="text-gray-600">{client.cnic}</p>
+        <div className="card-body">
+            {/* FIX: The 'md' property is not a valid CSS property for inline styles. Replaced with a responsive grid layout using 'auto-fit' and 'minmax' to achieve a similar responsive behavior. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem 1.5rem' }}>
+                <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h4 style={{fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-gray-800)'}}>{client.name}</h4>
+                        <p style={{color: 'var(--color-gray-600)'}}>{client.cnic}</p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                        <span style={{fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-gray-500)'}}>Risk Score</span>
+                        <div><Badge type={client.riskScore} /></div>
+                    </div>
                 </div>
-                <div className="text-right">
-                    <span className="text-sm font-medium text-gray-500">Risk Score</span>
-                    <div><Badge type={client.riskScore} /></div>
-                </div>
+                <ClientDetailItem label="Phone">{client.phone}</ClientDetailItem>
+                <ClientDetailItem label="Address">{client.address}</ClientDetailItem>
+                <ClientDetailItem label="Monthly Income">{client.income ? `PKR ${client.income.toLocaleString()}` : 'N/A'}</ClientDetailItem>
+                <ClientDetailItem label="Occupation">{client.occupation || 'N/A'}</ClientDetailItem>
+                <ClientDetailItem label="Household Size">{client.householdSize || 'N/A'}</ClientDetailItem>
+                {client.documents && client.documents.length > 0 && (
+                    <ClientDetailItem label="Documents">
+                        <ul style={{ listStyle: 'disc', paddingLeft: '1.25rem', fontSize: '0.875rem' }}>
+                            {client.documents.map(d => <li key={d.fileName}>{d.fileName}</li>)}
+                        </ul>
+                    </ClientDetailItem>
+                )}
             </div>
-            <div><p className="text-sm font-medium text-gray-500">Phone</p><p>{client.phone}</p></div>
-            <div><p className="text-sm font-medium text-gray-500">Address</p><p>{client.address}</p></div>
-            <div><p className="text-sm font-medium text-gray-500">Monthly Income</p><p>{client.income ? `PKR ${client.income.toLocaleString()}` : 'N/A'}</p></div>
-            <div><p className="text-sm font-medium text-gray-500">Occupation</p><p>{client.occupation || 'N/A'}</p></div>
-            <div><p className="text-sm font-medium text-gray-500">Household Size</p><p>{client.householdSize || 'N/A'}</p></div>
-            {client.documents && client.documents.length > 0 && (
-                <div>
-                    <p className="text-sm font-medium text-gray-500">Documents</p>
-                    <ul className="list-disc list-inside text-sm">
-                        {client.documents.map(d => <li key={d.fileName}>{d.fileName}</li>)}
-                    </ul>
-                </div>
-            )}
         </div>
       </Card>
 
       <div className="flex justify-between items-center">
-        <h3 className="text-2xl font-bold text-gray-700">Loans</h3>
+        <h3 className="page-title">Loans</h3>
         <Button onClick={onAddLoan}>+ Add New Loan</Button>
       </div>
 
@@ -77,7 +87,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, loans, onAddLoan,
         </div>
       ) : (
         <Card>
-          <p className="text-center text-gray-500">This client has no active or past loans.</p>
+            <div className="card-body">
+                <p style={{ textAlign: 'center', color: 'var(--color-gray-500)'}}>This client has no active or past loans.</p>
+            </div>
         </Card>
       )}
       
