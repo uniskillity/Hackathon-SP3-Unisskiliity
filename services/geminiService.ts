@@ -5,8 +5,27 @@ import { getCache, setCache } from '../utils/cache';
 
 type ClientInfoForRisk = Omit<Client, 'id' | 'riskScore' | 'joinDate' | 'documents'>;
 
+/**
+ * Safely creates a GoogleGenAI instance only if the API key is available.
+ * This prevents the application from crashing on startup in production environments
+ * where the API key might not be immediately available.
+ * @returns {GoogleGenAI | null} An instance of the GenAI client or null if the key is missing.
+ */
+const getGenAIClient = (): GoogleGenAI | null => {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        console.error("Gemini API key not found. Please ensure the API_KEY environment variable is set.");
+        return null;
+    }
+    return new GoogleGenAI({ apiKey });
+};
+
 export const getRiskScore = async (clientInfo: ClientInfoForRisk): Promise<RiskScore> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const ai = getGenAIClient();
+  if (!ai) {
+    return 'Medium'; // Fallback if API key is not available
+  }
+
   try {
     const prompt = `
       Analyze the risk profile for a new microfinance client in Pakistan based on the following information.
@@ -61,7 +80,11 @@ export const getLoanRecommendation = async (riskScore: RiskScore, loanAmount: nu
         return cached;
     }
     
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    const ai = getGenAIClient();
+    if (!ai) {
+        return "AI analysis unavailable at this moment.";
+    }
+
     try {
         const prompt = `
         A microfinance client with a "${riskScore}" risk score is applying for a loan of PKR ${loanAmount} for ${durationMonths} months.
@@ -108,7 +131,11 @@ export const getAIBasedDefaultPrediction = async (client: Client, loan: Loan): P
       return cached;
   }
     
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const ai = getGenAIClient();
+  if (!ai) {
+    return { predictionLabel: 'Moderate', predictionPercentage: 50 }; // Fallback
+  }
+
   try {
     const paidCount = loan.schedule.filter(i => i.status === 'Paid').length;
     const overdueCount = loan.schedule.filter(i => i.status === 'Overdue').length;
