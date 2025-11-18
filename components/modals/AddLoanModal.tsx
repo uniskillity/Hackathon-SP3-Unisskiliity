@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Client, Loan, Installment } from '../../types';
 import Modal from '../ui/Modal';
@@ -6,6 +5,9 @@ import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
 import { getLoanRecommendation } from '../../services/geminiService';
+import { generateSchedule } from '../../utils/loanUtils';
+
+const OFFICERS = ['Ali Raza', 'Fatima Jilani', 'Ahmed Cheema'];
 
 interface AddLoanModalProps {
   client: Client;
@@ -17,6 +19,8 @@ const AddLoanModal: React.FC<AddLoanModalProps> = ({ client, onClose, onAddLoan 
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('Business');
   const [duration, setDuration] = useState('');
+  const [interestRate, setInterestRate] = useState('');
+  const [assignedOfficer, setAssignedOfficer] = useState(OFFICERS[0]);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [error, setError] = useState('');
   const [recommendation, setRecommendation] = useState('');
@@ -45,31 +49,20 @@ const AddLoanModal: React.FC<AddLoanModalProps> = ({ client, onClose, onAddLoan 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, duration, fetchRecommendation]);
 
-  const generateSchedule = (loanAmount: number, durationMonths: number, loanStartDate: string): Installment[] => {
-    const monthlyPayment = loanAmount / durationMonths;
-    const schedule: Installment[] = [];
-    const start = new Date(loanStartDate);
-  
-    for (let i = 0; i < durationMonths; i++) {
-      const dueDate = new Date(start);
-      dueDate.setMonth(start.getMonth() + i + 1);
-      schedule.push({
-        id: `inst-${Date.now()}-${i}`,
-        dueDate: dueDate.toISOString().split('T')[0],
-        amount: parseFloat(monthlyPayment.toFixed(2)),
-        status: 'Pending',
-      });
-    }
-    return schedule;
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (client.riskScore === 'High') {
+        setError('Cannot create new loans for clients with a "High" risk score.');
+        return;
+    }
+
     const loanAmount = parseInt(amount);
     const durationMonths = parseInt(duration);
+    const rate = parseFloat(interestRate);
 
-    if (isNaN(loanAmount) || loanAmount <= 0 || isNaN(durationMonths) || durationMonths <= 0) {
-      setError('Please enter valid loan amount and duration.');
+    if (isNaN(loanAmount) || loanAmount <= 0 || isNaN(durationMonths) || durationMonths <= 0 || isNaN(rate) || rate < 0) {
+      setError('Please enter valid loan amount, duration, and interest rate.');
       return;
     }
     setError('');
@@ -83,6 +76,8 @@ const AddLoanModal: React.FC<AddLoanModalProps> = ({ client, onClose, onAddLoan 
       startDate,
       status: 'Active',
       schedule: generateSchedule(loanAmount, durationMonths, startDate),
+      interestRate: rate,
+      assignedOfficer,
     };
     onAddLoan(newLoan);
   };
@@ -90,8 +85,14 @@ const AddLoanModal: React.FC<AddLoanModalProps> = ({ client, onClose, onAddLoan 
   return (
     <Modal isOpen={true} onClose={onClose} title={`New Loan for ${client.name}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {client.riskScore === 'High' && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                <strong>Warning:</strong> This client has a high risk score. Loan creation is disabled.
+            </div>
+        )}
         <Input id="amount" label="Loan Amount (PKR)" type="number" value={amount} onChange={e => setAmount(e.target.value)} required />
         <Input id="duration" label="Duration (Months)" type="number" value={duration} onChange={e => setDuration(e.target.value)} required />
+        <Input id="interestRate" label="Interest Rate (%)" type="number" value={interestRate} onChange={e => setInterestRate(e.target.value)} required />
         <div>
             <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Loan Type</label>
             <select id="type" value={type} onChange={e => setType(e.target.value)} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
@@ -99,6 +100,13 @@ const AddLoanModal: React.FC<AddLoanModalProps> = ({ client, onClose, onAddLoan 
                 <option>Personal</option>
                 <option>Emergency</option>
                 <option>Education</option>
+                <option>Agriculture</option>
+            </select>
+        </div>
+         <div>
+            <label htmlFor="officer" className="block text-sm font-medium text-gray-700 mb-1">Assigned Officer</label>
+            <select id="officer" value={assignedOfficer} onChange={e => setAssignedOfficer(e.target.value)} className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+                {OFFICERS.map(o => <option key={o}>{o}</option>)}
             </select>
         </div>
         <Input id="startDate" label="Start Date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
@@ -119,7 +127,7 @@ const AddLoanModal: React.FC<AddLoanModalProps> = ({ client, onClose, onAddLoan 
         
         <div className="flex justify-end pt-4 space-x-3">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit">Create Loan</Button>
+          <Button type="submit" disabled={client.riskScore === 'High'}>Create Loan</Button>
         </div>
       </form>
     </Modal>

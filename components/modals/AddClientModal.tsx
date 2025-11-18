@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Client } from '../../types';
+import React, { useState, useRef } from 'react';
+import { Client, ClientDocument } from '../../types';
 import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
@@ -17,20 +17,50 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAddClient })
   const [cnic, setCnic] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [income, setIncome] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [householdSize, setHouseholdSize] = useState('');
+  const [documents, setDocuments] = useState<ClientDocument[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const newDoc: ClientDocument = {
+        fileName: file.name,
+        fileType: file.type,
+        uploadDate: new Date().toISOString().split('T')[0],
+      };
+      setDocuments(prev => [...prev, newDoc]);
+       // Reset file input
+      if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !cnic || !phone || !address) {
-      setError('All fields are required.');
+      setError('Required fields must be filled.');
       return;
     }
     setError('');
     setIsLoading(true);
     
     try {
-      const clientInfo = { name, cnic, phone, address };
+      const clientInfo = { 
+          name, 
+          cnic, 
+          phone, 
+          address,
+          income: parseInt(income) || undefined,
+          occupation: occupation || undefined,
+          householdSize: parseInt(householdSize) || undefined,
+      };
       const riskScore = await getRiskScore(clientInfo);
       
       const newClient: Client = {
@@ -38,6 +68,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAddClient })
         ...clientInfo,
         riskScore,
         joinDate: new Date().toISOString().split('T')[0],
+        documents,
       };
       
       onAddClient(newClient);
@@ -50,15 +81,42 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAddClient })
 
   return (
     <Modal isOpen={true} onClose={onClose} title="Add New Client">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <h4 className="text-sm font-bold text-gray-600 border-b pb-2">Personal Information</h4>
         <Input id="name" label="Full Name" type="text" value={name} onChange={e => setName(e.target.value)} required />
         <Input id="cnic" label="CNIC" type="text" value={cnic} onChange={e => setCnic(e.target.value)} required />
         <Input id="phone" label="Phone Number" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required />
         <Input id="address" label="Address" type="text" value={address} onChange={e => setAddress(e.target.value)} required />
         
+        <h4 className="text-sm font-bold text-gray-600 border-b pb-2 pt-4">Optional Details</h4>
+        <Input id="income" label="Monthly Income (PKR)" type="number" value={income} onChange={e => setIncome(e.target.value)} />
+        <Input id="occupation" label="Occupation" type="text" value={occupation} onChange={e => setOccupation(e.target.value)} />
+        <Input id="householdSize" label="Household Size" type="number" value={householdSize} onChange={e => setHouseholdSize(e.target.value)} />
+        
+        <div>
+           <label className="block text-sm font-medium text-gray-700 mb-1">Documents</label>
+           <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    <div className="flex text-sm text-gray-600">
+                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-teal-600 hover:text-teal-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-teal-500">
+                            <span>Upload a file</span>
+                            <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} ref={fileInputRef}/>
+                        </label>
+                        <p className="pl-1">(CNIC, Scorecard, etc.)</p>
+                    </div>
+                </div>
+           </div>
+           {documents.length > 0 && (
+                <ul className="mt-2 text-sm text-gray-500 list-disc list-inside">
+                    {documents.map(doc => <li key={doc.fileName}>{doc.fileName}</li>)}
+                </ul>
+           )}
+        </div>
+
         {error && <p className="text-red-500 text-sm">{error}</p>}
         
-        <div className="flex justify-end items-center pt-4 space-x-3">
+        <div className="flex justify-end items-center pt-4 space-x-3 border-t">
             {isLoading && <Spinner size="sm" />}
           <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
             Cancel

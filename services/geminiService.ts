@@ -1,23 +1,26 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Client, RiskScore, Loan, DefaultPrediction } from '../types';
 import { getCache, setCache } from '../utils/cache';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
-export const getRiskScore = async (clientInfo: Omit<Client, 'id' | 'riskScore' | 'joinDate'>): Promise<RiskScore> => {
+type ClientInfoForRisk = Omit<Client, 'id' | 'riskScore' | 'joinDate' | 'documents'>;
+
+export const getRiskScore = async (clientInfo: ClientInfoForRisk): Promise<RiskScore> => {
   try {
     const prompt = `
-      Analyze the risk profile for a new microfinance client based on the following information.
+      Analyze the risk profile for a new microfinance client in Pakistan based on the following information.
       - Name: ${clientInfo.name}
       - CNIC: ${clientInfo.cnic}
       - Phone: ${clientInfo.phone}
       - Address: ${clientInfo.address}
+      - Monthly Income (PKR): ${clientInfo.income || 'Not Provided'}
+      - Occupation: ${clientInfo.occupation || 'Not Provided'}
+      - Household Size: ${clientInfo.householdSize || 'Not Provided'}
       
-      Based on this very limited information and typical microfinance scenarios in Pakistan, provide a risk score.
+      Based on this information, provide a risk score. Higher income, stable occupations (e.g., Shop Owner vs. Laborer), and smaller household sizes generally indicate lower risk.
       The output must be a JSON object with a single key "riskScore" and one of three string values: "Low", "Medium", or "High".
-      
-      Example: A stable address in a known commercial area might suggest lower risk. A generic address could be medium.
-      For this simulation, just provide a reasonable guess.
     `;
     
     const response = await ai.models.generateContent({
@@ -109,13 +112,16 @@ export const getAIBasedDefaultPrediction = async (client: Client, loan: Loan): P
     const paidCount = loan.schedule.filter(i => i.status === 'Paid').length;
     const overdueCount = loan.schedule.filter(i => i.status === 'Overdue').length;
     const pendingCount = loan.schedule.filter(i => i.status === 'Pending').length;
+    const partiallyPaidCount = loan.schedule.filter(i => i.status === 'Partially Paid').length;
 
-    const repaymentSummary = `Total installments: ${loan.schedule.length}. Paid: ${paidCount}, Overdue: ${overdueCount}, Pending: ${pendingCount}.`;
+
+    const repaymentSummary = `Total installments: ${loan.schedule.length}. Paid: ${paidCount}, Partially Paid: ${partiallyPaidCount}, Overdue: ${overdueCount}, Pending: ${pendingCount}.`;
 
     const prompt = `
       Analyze the default risk for a microfinance loan based on the following data.
       Client Information:
       - Base Risk Score: ${client.riskScore}
+      - Monthly Income: PKR ${client.income || 'N/A'}
 
       Loan Information:
       - Amount: PKR ${loan.amount}
@@ -126,7 +132,7 @@ export const getAIBasedDefaultPrediction = async (client: Client, loan: Loan): P
       - ${repaymentSummary}
       
       Based on this data, predict the likelihood of the client defaulting on this loan.
-      A high base risk score, a high loan amount, and any overdue payments should significantly increase the default risk.
+      A high base risk score, a high loan amount, and any overdue or partially paid payments should significantly increase the default risk.
       The output must be a JSON object with two keys:
       1. "predictionLabel": A string value, either "Low", "Moderate", or "High".
       2. "predictionPercentage": An integer representing the percentage chance of default (e.g., 15 for 15%).

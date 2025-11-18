@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Client } from '../types';
 import Card from './ui/Card';
@@ -38,7 +37,8 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onSelectClient, onAddC
 
        <nav className="flex-1 min-h-0 overflow-y-auto">
         <ul>
-            <li 
+            <li
+                key="dashboard-link" 
                 className={`cursor-pointer p-4 border-b border-gray-200 ${isDashboardSelected ? 'bg-teal-50' : 'hover:bg-gray-50'}`}
                 onClick={onShowDashboard}
             >

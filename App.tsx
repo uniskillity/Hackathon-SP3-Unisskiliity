@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Client, Loan, View } from './types';
+import { Client, Loan, View, InstallmentStatus } from './types';
 import { getInitialData } from './utils/initialData';
 import Header from './components/ui/Header';
 import Dashboard from './components/Dashboard';
@@ -89,18 +90,39 @@ const App: React.FC = () => {
     setLoans(prevLoans => [...prevLoans, newLoan]);
     setAddLoanModalOpen(false);
   };
+  
+  const handleEditLoan = (updatedLoan: Loan) => {
+    setLoans(prevLoans => prevLoans.map(loan => loan.id === updatedLoan.id ? updatedLoan : loan));
+    removeCache(`prediction-${updatedLoan.id}`);
+  };
 
-  const handleUpdatePayment = (loanId: string, installmentId: string, isPaid: boolean) => {
+  const handleUpdatePayment = (loanId: string, installmentId: string, newStatus: InstallmentStatus, paidAmount?: number) => {
     setLoans(prevLoans => prevLoans.map(loan => {
       if (loan.id === loanId) {
+        const newSchedule = loan.schedule.map(inst => {
+          if (inst.id === installmentId) {
+            const updatedInst = { ...inst, status: newStatus, paymentDate: new Date().toISOString().split('T')[0] };
+            if (newStatus === 'Paid') {
+              updatedInst.paidAmount = inst.amount;
+            } else if (newStatus === 'Partially Paid') {
+              updatedInst.paidAmount = paidAmount;
+            } else {
+              delete updatedInst.paidAmount;
+              delete updatedInst.paymentDate;
+            }
+            return updatedInst;
+          }
+          return inst;
+        });
+        
+        // Check if all installments are paid to mark loan as Completed
+        const allPaid = newSchedule.every(inst => inst.status === 'Paid');
+        const newLoanStatus = allPaid ? 'Completed' : loan.status === 'Completed' ? 'Active' : loan.status;
+
         return {
           ...loan,
-          schedule: loan.schedule.map(inst => {
-            if (inst.id === installmentId) {
-              return { ...inst, status: isPaid ? 'Paid' : 'Pending' as 'Paid' | 'Pending' | 'Overdue' };
-            }
-            return inst;
-          }),
+          schedule: newSchedule,
+          status: newLoanStatus
         };
       }
       return loan;
@@ -108,6 +130,15 @@ const App: React.FC = () => {
     // Invalidate the cache for this loan's prediction since its data has changed
     removeCache(`prediction-${loanId}`);
   };
+
+  const handleUpdateLoanStatus = (loanId: string, newStatus: 'Defaulted' | 'Completed') => {
+      setLoans(prevLoans => prevLoans.map(loan => {
+          if (loan.id === loanId) {
+              return { ...loan, status: newStatus };
+          }
+          return loan;
+      }))
+  }
   
   // --- RENDER LOGIC ---
 
@@ -116,10 +147,13 @@ const App: React.FC = () => {
       case View.CLIENT_DETAILS:
         return selectedClient && (
           <ClientDetails 
+            key={selectedClientId} // Add key to force re-mount on client change
             client={selectedClient} 
             loans={clientLoans}
             onAddLoan={() => setAddLoanModalOpen(true)}
             onUpdatePayment={handleUpdatePayment}
+            onUpdateLoanStatus={handleUpdateLoanStatus}
+            onEditLoan={handleEditLoan}
           />
         );
       case View.DASHBOARD:
