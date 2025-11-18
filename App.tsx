@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense, useRef } from 'react';
 import { Client, Loan, View, InstallmentStatus } from './types';
 import { getInitialData } from './utils/initialData';
 import Header from './components/ui/Header';
@@ -58,6 +58,7 @@ const App: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isAddClientModalOpen, setAddClientModalOpen] = useState(false);
   const [isAddLoanModalOpen, setAddLoanModalOpen] = useState(false);
+  const contentRef = useRef<HTMLElement>(null);
 
   // --- MEMOIZED SELECTORS ---
   const selectedClient = useMemo(() => {
@@ -67,6 +68,16 @@ const App: React.FC = () => {
   const clientLoans = useMemo(() => {
     return loans.filter(l => l.clientId === selectedClientId);
   }, [loans, selectedClientId]);
+
+  // --- EFFECTS ---
+  
+  // Auto-scroll on mobile when client is selected
+  useEffect(() => {
+      if (selectedClientId && window.innerWidth < 1024 && contentRef.current) {
+          contentRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+  }, [selectedClientId]);
+
 
   // --- HANDLERS ---
 
@@ -190,14 +201,14 @@ const App: React.FC = () => {
       />
       <main className="main-container">
         {currentView === View.ARCHITECTURE ? (
-             <div className="grid-col-span-3">
+             <div className="animate-slide-up">
                  <Suspense fallback={<PageLoader />}>
                     {renderContent()}
                  </Suspense>
              </div>
         ) : (
             <div className="main-grid">
-            <div className="grid-col-span-1">
+            <aside className="sidebar-area">
                 <ClientList 
                 clients={clients} 
                 onSelectClient={handleSelectClient}
@@ -205,12 +216,12 @@ const App: React.FC = () => {
                 selectedClientId={selectedClientId}
                 onShowDashboard={() => handleNavigate(View.DASHBOARD)}
                 />
-            </div>
-            <div className="grid-col-span-2">
+            </aside>
+            <section className="animate-slide-up" ref={contentRef}>
                 <Suspense fallback={<PageLoader />}>
                     {renderContent()}
                 </Suspense>
-            </div>
+            </section>
             </div>
         )}
       </main>

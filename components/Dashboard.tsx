@@ -1,5 +1,6 @@
+
 import React, { useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area } from 'recharts';
 import { Client, Loan, RiskScore } from '../types';
 import Card from './ui/Card';
 
@@ -14,15 +15,22 @@ const COLORS: { [key in RiskScore]: string } = {
   High: '#EF4444',   // Red 500
 };
 
-const StatCard: React.FC<{ title: string; value: string | number, icon: React.ReactNode }> = ({ title, value, icon }) => (
+const StatCard: React.FC<{ title: string; value: string | number, icon: React.ReactNode, trend?: string, colorClass: string }> = ({ title, value, icon, trend, colorClass }) => (
     <Card>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ padding: '0.75rem', borderRadius: '9999px', backgroundColor: 'var(--color-teal-100)', color: 'var(--color-teal-600)', marginRight: '1rem' }}>
-                {icon}
-            </div>
+        <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-gray-500)' }}>{title}</p>
-                <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-gray-800)' }}>{value}</p>
+                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-slate-500)', marginBottom: '0.25rem' }}>{title}</p>
+                <p style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-slate-900)', letterSpacing: '-0.02em' }}>{value}</p>
+                {trend && <p style={{ fontSize: '0.8rem', color: 'var(--color-success-text)', marginTop: '0.25rem' }}>{trend}</p>}
+            </div>
+            <div style={{ 
+                padding: '1rem', 
+                borderRadius: '1rem', 
+                backgroundColor: `var(${colorClass})`, 
+                color: 'white',
+                boxShadow: 'var(--shadow-md)'
+            }}>
+                {icon}
             </div>
         </div>
     </Card>
@@ -43,14 +51,22 @@ const LoanDisbursementChart: React.FC<{ loans: Loan[] }> = ({ loans }) => {
 
     return (
         <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value: number) => `PKR ${value.toLocaleString()}`} />
-                <Legend />
-                <Line type="monotone" dataKey="amount" name="Disbursed Amount" stroke="#0D9488" strokeWidth={2} />
-            </LineChart>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                    <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-primary-500)" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="var(--color-primary-500)" stopOpacity={0}/>
+                    </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-200)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--color-slate-500)', fontSize: 12}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-slate-500)', fontSize: 12}} />
+                <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value: number) => [`PKR ${value.toLocaleString()}`, 'Amount']}
+                />
+                <Area type="monotone" dataKey="amount" stroke="var(--color-primary-600)" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
+            </AreaChart>
         </ResponsiveContainer>
     );
 };
@@ -86,11 +102,19 @@ const OfficerPerformance: React.FC<{ loans: Loan[] }> = ({ loans }) => {
                 <tbody>
                     {performanceData.map(officer => (
                         <tr key={officer.name}>
-                            <td style={{fontWeight: 500, color: 'var(--color-gray-900)'}}>{officer.name}</td>
+                            <td style={{fontWeight: 600, color: 'var(--color-slate-900)'}}>{officer.name}</td>
                             <td>{officer.totalLoans}</td>
                             <td>PKR {officer.totalDisbursed.toLocaleString()}</td>
-                            <td>{officer.active}</td>
-                            <td style={{color: 'var(--color-red-600)', fontWeight: 500}}>{officer.defaulted}</td>
+                            <td>
+                                <span className="badge badge-active">{officer.active}</span>
+                            </td>
+                            <td>
+                                {officer.defaulted > 0 ? (
+                                     <span className="badge badge-defaulted">{officer.defaulted}</span>
+                                ) : (
+                                    <span style={{color: 'var(--color-slate-400)'}}>-</span>
+                                )}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -122,54 +146,69 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, loans }) => {
 
   return (
     <div className="space-y-6">
-       <h2 className="page-title">Dashboard Overview</h2>
+       <div className="flex justify-between items-center">
+            <div>
+                <h2 className="page-title">Overview</h2>
+                <p style={{color: 'var(--color-slate-500)'}}>Here's what's happening with your loan portfolio today.</p>
+            </div>
+            <button className="btn btn-secondary btn-sm">
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{width:'1.25rem', height:'1.25rem'}}>
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                 </svg>
+                 Export Report
+            </button>
+       </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem'}}>
-        <StatCard title="Total Clients" value={totalClients} icon={<UsersIcon />} />
-        <StatCard title="Active Loans" value={activeLoans} icon={<TrendingUpIcon />} />
-        <StatCard title="Completed Loans" value={completedLoans} icon={<CheckCircleIcon />} />
-        <StatCard title="Defaulted Loans" value={defaultedLoans} icon={<ExclamationCircleIcon />} />
+        <StatCard title="Total Clients" value={totalClients} icon={<UsersIcon />} trend="+12% vs last month" colorClass="--color-primary-500" />
+        <StatCard title="Active Loans" value={activeLoans} icon={<TrendingUpIcon />} trend="+5% vs last month" colorClass="--color-primary-500" />
+        <StatCard title="Completed" value={completedLoans} icon={<CheckCircleIcon />} colorClass="--color-success-text" />
+        <StatCard title="Defaulted" value={defaultedLoans} icon={<ExclamationCircleIcon />} colorClass="--color-danger-text" />
       </div>
       
-      {/* FIX: The 'lg' property is not a valid CSS property for inline styles. Replaced with a responsive grid layout using 'auto-fit' and 'minmax' to achieve a similar responsive behavior. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem'}}>
-        <Card title="Client Risk Distribution">
-          {riskDistribution.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={riskDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  nameKey="name"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {riskDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[entry.name.split(' ')[0] as RiskScore]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-gray-500)' }}>
-                  <p>No client data available to display risk distribution.</p>
-              </div>
-          )}
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem'}}>
         <Card title="Loan Disbursement Trend">
             <div className="card-body">
                 <LoanDisbursementChart loans={loans} />
             </div>
         </Card>
+        <Card title="Client Risk Distribution">
+          {riskDistribution.length > 0 ? (
+            <div style={{height: 300, width: '100%'}}>
+                <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                    <Pie
+                    data={riskDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                    {riskDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[entry.name.split(' ')[0] as RiskScore]} strokeWidth={0} />
+                    ))}
+                    </Pie>
+                    <Tooltip 
+                        contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+                </ResponsiveContainer>
+            </div>
+          ) : (
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-slate-400)' }}>
+                  <p>No client data available.</p>
+              </div>
+          )}
+        </Card>
       </div>
 
-       <Card title="Officer Performance">
-            <div className="card-body">
+       <Card title="Top Performing Officers">
+            <div className="card-body" style={{padding: 0}}>
               <OfficerPerformance loans={loans} />
             </div>
        </Card>
