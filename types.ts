@@ -51,6 +51,7 @@ export interface Loan {
 export enum View {
   DASHBOARD = 'DASHBOARD',
   CLIENT_DETAILS = 'CLIENT_DETAILS',
+  ARCHITECTURE = 'ARCHITECTURE',
 }
 
 export interface DefaultPrediction {

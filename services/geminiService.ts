@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Client, RiskScore, Loan, DefaultPrediction } from '../types';
 import { getCache, setCache } from '../utils/cache';
 
@@ -18,6 +18,18 @@ const getGenAIClient = (): GoogleGenAI | null => {
         return null;
     }
     return new GoogleGenAI({ apiKey });
+};
+
+export const createChatSession = (): Chat | null => {
+    const ai = getGenAIClient();
+    if (!ai) return null;
+
+    return ai.chats.create({
+        model: 'gemini-2.5-flash',
+        config: {
+            systemInstruction: "You are a helpful AI assistant for a Microfinance Loan Management System in Pakistan. You assist loan officers in understanding client risk, recommending loan terms based on local context, and drafting professional communication. Keep your responses concise and professional.",
+        }
+    });
 };
 
 export const getRiskScore = async (clientInfo: ClientInfoForRisk): Promise<RiskScore> => {

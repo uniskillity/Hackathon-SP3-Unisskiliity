@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Client } from '../types';
 import Card from './ui/Card';
@@ -21,6 +22,11 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onSelectClient, onAddC
   );
   
   const isDashboardSelected = selectedClientId === null;
+
+  // Mask CNIC (e.g., 12345-*******-3)
+  const maskCNIC = (cnic: string) => {
+      return cnic.replace(/(\d{5}-)(\d{7})(-\d)/, '$1*******$3');
+  };
 
   return (
     <Card className="client-list-card">
@@ -58,7 +64,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onSelectClient, onAddC
                         <div className={`client-list-item-indicator ${selectedClientId === client.id ? 'selected' : ''}`}></div>
                         <div>
                                 <p className="client-list-item-name">{client.name}</p>
-                                <p className="client-list-item-cnic">{client.cnic}</p>
+                                <p className="client-list-item-cnic">{maskCNIC(client.cnic)}</p>
                         </div>
                         </div>
                         <Badge type={client.riskScore} />

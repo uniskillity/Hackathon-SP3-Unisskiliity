@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { Client, Loan, View, InstallmentStatus } from './types';
 import { getInitialData } from './utils/initialData';
@@ -12,6 +13,8 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 const ClientDetails = lazy(() => import('./components/ClientDetails'));
 const AddClientModal = lazy(() => import('./components/modals/AddClientModal'));
 const AddLoanModal = lazy(() => import('./components/modals/AddLoanModal'));
+const ChatWidget = lazy(() => import('./components/ChatWidget'));
+const Architecture = lazy(() => import('./components/Architecture'));
 
 
 const App: React.FC = () => {
@@ -142,6 +145,13 @@ const App: React.FC = () => {
           return loan;
       }))
   }
+
+  const handleNavigate = (view: View) => {
+    setCurrentView(view);
+    if (view === View.DASHBOARD || view === View.ARCHITECTURE) {
+        setSelectedClientId(null);
+    }
+  };
   
   // --- RENDER LOGIC ---
 
@@ -159,6 +169,8 @@ const App: React.FC = () => {
             onEditLoan={handleEditLoan}
           />
         );
+      case View.ARCHITECTURE:
+        return <Architecture />;
       case View.DASHBOARD:
       default:
         return <Dashboard clients={clients} loans={loans} />;
@@ -171,28 +183,41 @@ const App: React.FC = () => {
 
   return (
     <div>
-      <Header onLogout={handleLogout} />
+      <Header 
+        onLogout={handleLogout} 
+        currentView={currentView} 
+        onNavigate={handleNavigate}
+      />
       <main className="main-container">
-        <div className="main-grid">
-          <div className="grid-col-span-1">
-            <ClientList 
-              clients={clients} 
-              onSelectClient={handleSelectClient}
-              onAddClient={() => setAddClientModalOpen(true)}
-              selectedClientId={selectedClientId}
-              onShowDashboard={() => {
-                setSelectedClientId(null);
-                setCurrentView(View.DASHBOARD);
-              }}
-            />
-          </div>
-          <div className="grid-col-span-2">
-             <Suspense fallback={<PageLoader />}>
-                {renderContent()}
-            </Suspense>
-          </div>
-        </div>
+        {currentView === View.ARCHITECTURE ? (
+             <div className="grid-col-span-3">
+                 <Suspense fallback={<PageLoader />}>
+                    {renderContent()}
+                 </Suspense>
+             </div>
+        ) : (
+            <div className="main-grid">
+            <div className="grid-col-span-1">
+                <ClientList 
+                clients={clients} 
+                onSelectClient={handleSelectClient}
+                onAddClient={() => setAddClientModalOpen(true)}
+                selectedClientId={selectedClientId}
+                onShowDashboard={() => handleNavigate(View.DASHBOARD)}
+                />
+            </div>
+            <div className="grid-col-span-2">
+                <Suspense fallback={<PageLoader />}>
+                    {renderContent()}
+                </Suspense>
+            </div>
+            </div>
+        )}
       </main>
+      
+      <Suspense fallback={null}>
+         <ChatWidget />
+      </Suspense>
 
       <Suspense fallback={null}>
         {isAddClientModalOpen && (
