@@ -41,7 +41,15 @@ const ChatWidget: React.FC = () => {
         if (lower.includes('export')) return "You can export the portfolio report from the Dashboard using the 'Export Report' button.";
         if (lower.includes('client')) return "You can add new clients using the '+ New' button in the client list.";
         
-        return "I can assist you with client onboarding, loan tracking, and risk analysis. Even without a live connection, I can guide you through the system's features. How can I help?";
+        // Dynamic default responses to prevent repetitive output
+        const defaults = [
+            "I can assist you with client onboarding, loan tracking, and risk analysis. Even without a live connection, I can guide you through the system's features. How can I help?",
+            "I'm here to help manage your loan portfolio. You can ask me about risk scores, creating loans, or tracking repayments.",
+            "My AI connection seems to be offline, but I can still guide you. Try asking about 'adding a client' or 'checking default risk'.",
+            "I didn't quite catch that, but I'm ready to assist with Microfinance tasks. Would you like to know how to export a report?",
+            "Could you please clarify? I can help with loan calculations, risk assessments, or navigating the dashboard."
+        ];
+        return defaults[Math.floor(Math.random() * defaults.length)];
     };
 
     const handleSend = async (e: React.FormEvent) => {
@@ -64,7 +72,11 @@ const ChatWidget: React.FC = () => {
             if (chatSessionRef.current) {
                  try {
                     const result = await chatSessionRef.current.sendMessage({ message: userMsg.text });
-                    responseText = result.text;
+                    if (result.text) {
+                        responseText = result.text;
+                    } else {
+                        responseText = "I'm unable to provide a response to that specific input due to content filtering. Please try asking in a different way.";
+                    }
                  } catch (apiError) {
                      console.warn("API call failed, falling back to simulated mode", apiError);
                      responseText = getMockResponse(userMsg.text);
