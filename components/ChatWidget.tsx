@@ -21,7 +21,14 @@ const ChatWidget: React.FC = () => {
 
     useEffect(() => {
         if (isOpen && !chatSessionRef.current) {
-            chatSessionRef.current = createChatSession();
+            const session = createChatSession();
+            if (session) {
+                chatSessionRef.current = session;
+            } else {
+                 // Do not clutter chat with error immediately, just log it.
+                 // The error message will be shown if the user tries to send a message.
+                 console.warn("Gemini Chat Session could not be initialized. Check API Key.");
+            }
         }
     }, [isOpen]);
 
@@ -39,12 +46,16 @@ const ChatWidget: React.FC = () => {
         setIsLoading(true);
 
         try {
+            // Try to initialize if not already done
             if (!chatSessionRef.current) {
                  chatSessionRef.current = createChatSession();
-                 if(!chatSessionRef.current) {
-                     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'AI service is currently unavailable. Please check your API Key.' }]);
-                     return;
-                 }
+            }
+
+            if (!chatSessionRef.current) {
+                // Explicit error if initialization failed
+                 setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'AI service is currently unavailable. Please check your system configuration or internet connection.' }]);
+                 setIsLoading(false);
+                 return;
             }
 
             const result = await chatSessionRef.current.sendMessage({ message: userMsg.text });
@@ -53,7 +64,7 @@ const ChatWidget: React.FC = () => {
 
         } catch (error) {
             console.error("Chat error", error);
-             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'Sorry, I encountered an error processing your request.' }]);
+             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'Sorry, I encountered an error connecting to the AI service. Please try again later.' }]);
         } finally {
             setIsLoading(false);
         }

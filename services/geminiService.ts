@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Chat } from "@google/genai";
-import { Client, RiskScore, Loan, DefaultPrediction } from '../types';
+import { Client, RiskScore, Loan, DefaultPrediction, Installment } from '../types';
 import { getCache, setCache } from '../utils/cache';
 
 type ClientInfoForRisk = Omit<Client, 'id' | 'riskScore' | 'joinDate' | 'documents'>;
@@ -213,4 +213,46 @@ export const getAIBasedDefaultPrediction = async (client: Client, loan: Loan): P
     console.error("Error fetching AI default prediction from Gemini API:", error);
     return { predictionLabel: 'Moderate', predictionPercentage: 50 }; // Fallback
   }
+};
+
+export const generateCollectionMessage = async (client: Client, loan: Loan, installment: Installment): Promise<string> => {
+    const ai = getGenAIClient();
+    const daysOverdue = (new Date().getTime() - new Date(installment.dueDate).getTime()) / (1000 * 3600 * 24);
+    const isOverdue = daysOverdue > 0;
+
+    if (!ai) {
+        // Fallback template
+        return `Dear ${client.name}, this is a reminder regarding your installment of PKR ${installment.amount.toLocaleString()} for your ${loan.type} loan, due on ${installment.dueDate}. Please ensure timely payment to maintain a good credit standing.`;
+    }
+
+    try {
+        const prompt = `
+            Write a short, professional SMS message (max 160 chars) to a microfinance client in Pakistan regarding a loan installment.
+            
+            Client Name: ${client.name}
+            Loan Type: ${loan.type}
+            Installment Amount: PKR ${installment.amount}
+            Due Date: ${installment.dueDate}
+            Status: ${isOverdue ? 'Overdue by ' + Math.floor(daysOverdue) + ' days' : 'Due Soon'}
+            Client Risk Profile: ${client.riskScore}
+
+            Guidelines:
+            - If Risk is 'Low' and status is 'Due Soon': Be very polite, friendly, and encouraging.
+            - If Risk is 'High' or status is 'Overdue': Be firm, professional, and urgent. Mention consequences of default if overdue.
+            - Language: English (but use culturally appropriate phrasing for Pakistan).
+            - Do NOT include placeholders like [Link].
+            
+            Return ONLY the message text as a raw string.
+        `;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error generating message:", error);
+        return "Could not generate message. Please try again.";
+    }
 };

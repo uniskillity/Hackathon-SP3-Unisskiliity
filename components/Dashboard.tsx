@@ -1,12 +1,14 @@
 
 import React, { useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area } from 'recharts';
-import { Client, Loan, RiskScore } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, AreaChart, Area, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Client, Loan, RiskScore, UserRole } from '../types';
 import Card from './ui/Card';
 
 interface DashboardProps {
   clients: Client[];
   loans: Loan[];
+  onRunDailyBatch: () => void;
+  userRole?: UserRole;
 }
 
 const COLORS: { [key in RiskScore]: string } = {
@@ -75,10 +77,11 @@ const OfficerPerformance: React.FC<{ loans: Loan[] }> = ({ loans }) => {
     const performanceData = useMemo(() => {
         const officerStats: { [key: string]: { totalLoans: number, totalDisbursed: number, active: number, defaulted: number } } = {};
         loans.forEach(loan => {
-            if (!officerStats[loan.assignedOfficer]) {
-                officerStats[loan.assignedOfficer] = { totalLoans: 0, totalDisbursed: 0, active: 0, defaulted: 0 };
+            const officer = loan.assignedOfficer || 'Unassigned';
+            if (!officerStats[officer]) {
+                officerStats[officer] = { totalLoans: 0, totalDisbursed: 0, active: 0, defaulted: 0 };
             }
-            const stats = officerStats[loan.assignedOfficer];
+            const stats = officerStats[officer];
             stats.totalLoans++;
             stats.totalDisbursed += loan.amount;
             if (loan.status === 'Active') stats.active++;
@@ -124,7 +127,7 @@ const OfficerPerformance: React.FC<{ loans: Loan[] }> = ({ loans }) => {
 };
 
 
-const Dashboard: React.FC<DashboardProps> = ({ clients, loans }) => {
+const Dashboard: React.FC<DashboardProps> = ({ clients, loans, onRunDailyBatch, userRole }) => {
 
   const totalClients = clients.length;
   const activeLoans = loans.filter(loan => loan.status === 'Active').length;
@@ -143,20 +146,60 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, loans }) => {
       { name: 'High Risk', value: counts.High },
     ].filter(item => item.value > 0);
   }, [clients]);
+  
+  const handleExportReport = () => {
+      const headers = ['Client ID', 'Name', 'CNIC', 'Risk Score', 'Loan ID', 'Loan Type', 'Amount', 'Status', 'Outstanding Balance'];
+      
+      const rows = loans.map(loan => {
+          const client = clients.find(c => c.id === loan.clientId);
+          const outstanding = loan.amount - loan.schedule.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
+          
+          return [
+              client?.id || '',
+              client?.name || 'Unknown',
+              client?.cnic || '',
+              client?.riskScore || '',
+              loan.id,
+              loan.type,
+              loan.amount,
+              loan.status,
+              outstanding
+          ].join(',');
+      });
+      
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `mlms_portfolio_report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
-       <div className="flex justify-between items-center">
+       <div className="flex justify-between items-center dashboard-header">
             <div>
                 <h2 className="page-title">Overview</h2>
                 <p style={{color: 'var(--color-slate-500)'}}>Here's what's happening with your loan portfolio today.</p>
             </div>
-            <button className="btn btn-secondary btn-sm">
-                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{width:'1.25rem', height:'1.25rem'}}>
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                 </svg>
-                 Export Report
-            </button>
+            <div className="dashboard-actions">
+                {userRole === 'Admin' && (
+                    <button className="btn btn-primary btn-sm" onClick={onRunDailyBatch}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{width:'1.25rem', height:'1.25rem'}}>
+                            <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                        </svg>
+                        Run Daily Processing
+                    </button>
+                )}
+                <button className="btn btn-secondary btn-sm" onClick={handleExportReport}>
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{width:'1.25rem', height:'1.25rem'}}>
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                     </svg>
+                     Export Report
+                </button>
+            </div>
        </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem'}}>

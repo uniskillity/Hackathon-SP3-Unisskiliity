@@ -32,7 +32,14 @@ const ClientList: React.FC<ClientListProps> = ({ clients, onSelectClient, onAddC
     <Card className="client-list-card">
         <div className="card-body">
             <div className="client-list-header">
-                <h3>Clients</h3>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem'}}>
+                    <h3>Clients</h3>
+                    <Button onClick={onAddClient} size="sm" style={{borderRadius: '50%', width: '2rem', height: '2rem', padding: 0}}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style={{width: '1.25rem', height: '1.25rem'}}>
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                    </Button>
+                </div>
                 <input
                 type="text"
                 placeholder="Search by name or CNIC..."

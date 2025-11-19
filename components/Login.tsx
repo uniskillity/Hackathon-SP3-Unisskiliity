@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
 import Card from './ui/Card';
 import Input from './ui/Input';
 import Button from './ui/Button';
+import { User } from '../types';
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (user: User) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -14,11 +16,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would be an API call. Here, we use dummy credentials.
-    if (username === 'admin' && password === 'password') {
-      onLogin();
+    
+    // Mock User Directory
+    if (username === 'admin' && password === 'admin123') {
+      onLogin({
+        username: 'admin',
+        name: 'System Administrator',
+        role: 'Admin'
+      });
+    } else if (username === 'officer' && password === 'officer123') {
+      onLogin({
+        username: 'officer',
+        name: 'Ali Raza',
+        role: 'Officer'
+      });
     } else {
-      setError('Invalid username or password. (Hint: admin / password)');
+      setError('Invalid credentials.');
     }
   };
 
@@ -30,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
             </svg>
             <h1>AI Microfinance Loan Manager</h1>
-            <p>Please sign in to continue</p>
+            <p>Secure Loan Management System</p>
         </div>
         <Card>
           <div className="card-body">
@@ -43,6 +56,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onChange={e => setUsername(e.target.value)} 
                 required 
                 autoComplete="username"
+                placeholder="e.g. admin or officer"
                 />
                 <Input 
                 id="password" 
@@ -53,7 +67,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 required 
                 autoComplete="current-password"
                 />
-                {error && <p className="text-danger" style={{textAlign: 'center'}}>{error}</p>}
+                {error && (
+                    <div className="alert alert-danger" style={{padding: '0.5rem', fontSize: '0.85rem'}}>
+                        {error}
+                    </div>
+                )}
+                
+                <div style={{fontSize: '0.8rem', color: 'var(--color-slate-500)', textAlign: 'center', background: 'var(--color-slate-50)', padding: '0.5rem', borderRadius: 'var(--radius-md)'}}>
+                    <p><strong>Demo Credentials:</strong></p>
+                    <p>Admin: <code>admin / admin123</code></p>
+                    <p>Officer: <code>officer / officer123</code></p>
+                </div>
+
                 <Button type="submit" className="btn-full">
                 Sign In
                 </Button>

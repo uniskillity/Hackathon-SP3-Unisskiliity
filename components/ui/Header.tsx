@@ -1,15 +1,16 @@
 
 import React from 'react';
 import Button from './Button';
-import { View } from '../../types';
+import { View, User } from '../../types';
 
 interface HeaderProps {
+  user?: User;
   onLogout: () => void;
   currentView: View;
   onNavigate: (view: View) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onLogout, currentView, onNavigate }) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout, currentView, onNavigate }) => {
   return (
     <header className="header">
       <div className="header-content">
@@ -38,7 +39,19 @@ const Header: React.FC<HeaderProps> = ({ onLogout, currentView, onNavigate }) =>
                  </button>
              </nav>
 
-             <Button onClick={onLogout} variant="secondary" size="sm">
+             {user && (
+                 <div className="hidden-mobile" style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '0.5rem', paddingRight: '0.5rem', borderRight: '1px solid var(--color-slate-200)'}}>
+                     <div style={{textAlign: 'right'}}>
+                         <div style={{fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-slate-800)'}}>{user.name}</div>
+                         <div style={{fontSize: '0.7rem', color: 'var(--color-primary-600)', textTransform: 'uppercase', fontWeight: 700}}>{user.role}</div>
+                     </div>
+                     <div style={{width: '2rem', height: '2rem', borderRadius: '50%', backgroundColor: 'var(--color-primary-100)', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700}}>
+                         {user.name.charAt(0)}
+                     </div>
+                 </div>
+             )}
+
+             <Button onClick={onLogout} variant="secondary" size="sm" aria-label="Sign Out">
                 Sign Out
              </Button>
          </div>

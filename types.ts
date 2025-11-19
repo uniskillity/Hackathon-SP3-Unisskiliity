@@ -3,6 +3,13 @@ export type RiskScore = 'Low' | 'Medium' | 'High';
 export type LoanStatus = 'Active' | 'Completed' | 'Defaulted';
 export type InstallmentStatus = 'Paid' | 'Pending' | 'Overdue' | 'Partially Paid';
 export type DefaultPredictionLabel = 'Low' | 'Moderate' | 'High';
+export type UserRole = 'Admin' | 'Officer';
+
+export interface User {
+  username: string;
+  name: string;
+  role: UserRole;
+}
 
 export interface ClientDocument {
   fileName: string;

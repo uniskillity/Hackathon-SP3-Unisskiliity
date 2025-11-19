@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useEffect, lazy, Suspense, useRef } from 'react';
-import { Client, Loan, View, InstallmentStatus } from './types';
+import React, { useState, useMemo, useEffect, lazy, Suspense, useRef, useCallback } from 'react';
+import { Client, Loan, View, InstallmentStatus, User } from './types';
 import { getInitialData } from './utils/initialData';
 import Header from './components/ui/Header';
 import ClientList from './components/ClientList';
@@ -20,10 +20,10 @@ const Architecture = lazy(() => import('./components/Architecture'));
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
   
-  // 1. Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    // Check session storage for auth flag
-    return sessionStorage.getItem('mlms-auth') === 'true';
+  // 1. Authentication State with RBAC
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const storedUser = sessionStorage.getItem('mlms-user');
+    return storedUser ? JSON.parse(storedUser) : null;
   });
 
   // 2. Data Persistence State (Simulating Database)
@@ -60,6 +60,42 @@ const App: React.FC = () => {
   const [isAddLoanModalOpen, setAddLoanModalOpen] = useState(false);
   const contentRef = useRef<HTMLElement>(null);
 
+  // --- SECURITY HARDENING: Session Timeout ---
+  const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+
+  const handleLogout = useCallback(() => {
+    sessionStorage.removeItem('mlms-user');
+    setCurrentUser(null);
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+  }, []);
+
+  const resetSessionTimer = useCallback(() => {
+    if (!currentUser) return;
+    
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    logoutTimerRef.current = setTimeout(() => {
+      alert("Session expired due to inactivity.");
+      handleLogout();
+    }, SESSION_TIMEOUT);
+  }, [currentUser, handleLogout]);
+
+  useEffect(() => {
+    if (currentUser) {
+      resetSessionTimer();
+      window.addEventListener('mousemove', resetSessionTimer);
+      window.addEventListener('keydown', resetSessionTimer);
+      window.addEventListener('click', resetSessionTimer);
+    }
+    return () => {
+      window.removeEventListener('mousemove', resetSessionTimer);
+      window.removeEventListener('keydown', resetSessionTimer);
+      window.removeEventListener('click', resetSessionTimer);
+      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    };
+  }, [currentUser, resetSessionTimer]);
+
+
   // --- MEMOIZED SELECTORS ---
   const selectedClient = useMemo(() => {
     return clients.find(c => c.id === selectedClientId) || null;
@@ -81,15 +117,9 @@ const App: React.FC = () => {
 
   // --- HANDLERS ---
 
-  // Authentication Handlers
-  const handleLogin = () => {
-    sessionStorage.setItem('mlms-auth', 'true');
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('mlms-auth');
-    setIsAuthenticated(false);
+  const handleLogin = (user: User) => {
+    sessionStorage.setItem('mlms-user', JSON.stringify(user));
+    setCurrentUser(user);
   };
 
   // Data Handlers
@@ -157,6 +187,40 @@ const App: React.FC = () => {
       }))
   }
 
+  const handleRunDailyBatch = () => {
+    const today = new Date().toISOString().split('T')[0];
+    let processedCount = 0;
+    let hasChanges = false;
+
+    // Calculate changes first
+    const updatedLoans = loans.map(loan => {
+        if (loan.status !== 'Active') return loan;
+
+        let loanModified = false;
+        const newSchedule = loan.schedule.map(inst => {
+            if (inst.status === 'Pending' && inst.dueDate < today) {
+                processedCount++;
+                loanModified = true;
+                return { ...inst, status: 'Overdue' as InstallmentStatus };
+            }
+            return inst;
+        });
+
+        if (loanModified) {
+            hasChanges = true;
+            return { ...loan, schedule: newSchedule };
+        }
+        return loan;
+    });
+
+    if (hasChanges) {
+        setLoans(updatedLoans);
+        alert(`✅ Automation Complete\n\nProcessed entire portfolio.\nMarked ${processedCount} missed payments as 'Overdue'.`);
+    } else {
+        alert("✅ Automation Complete\n\nNo overdue payments found today.");
+    }
+  };
+
   const handleNavigate = (view: View) => {
     setCurrentView(view);
     if (view === View.DASHBOARD || view === View.ARCHITECTURE) {
@@ -184,17 +248,25 @@ const App: React.FC = () => {
         return <Architecture />;
       case View.DASHBOARD:
       default:
-        return <Dashboard clients={clients} loans={loans} />;
+        return (
+          <Dashboard 
+            clients={clients} 
+            loans={loans} 
+            onRunDailyBatch={handleRunDailyBatch} 
+            userRole={currentUser?.role}
+          />
+        );
     }
   };
 
-  if (!isAuthenticated) {
+  if (!currentUser) {
     return <Login onLogin={handleLogin} />;
   }
 
   return (
     <div>
       <Header 
+        user={currentUser}
         onLogout={handleLogout} 
         currentView={currentView} 
         onNavigate={handleNavigate}
