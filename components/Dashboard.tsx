@@ -154,16 +154,26 @@ const Dashboard: React.FC<DashboardProps> = ({ clients, loans, onRunDailyBatch, 
           const client = clients.find(c => c.id === loan.clientId);
           const outstanding = loan.amount - loan.schedule.reduce((sum, inst) => sum + (inst.paidAmount || 0), 0);
           
+          // Helper to safely escape CSV fields
+          const escape = (val: string | number | undefined) => {
+              const str = String(val || '');
+              // If contains comma, quote or newline, wrap in quotes and escape existing quotes
+              if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                  return `"${str.replace(/"/g, '""')}"`;
+              }
+              return str;
+          };
+
           return [
-              client?.id || '',
-              client?.name || 'Unknown',
-              client?.cnic || '',
-              client?.riskScore || '',
-              loan.id,
-              loan.type,
-              loan.amount,
-              loan.status,
-              outstanding
+              escape(client?.id),
+              escape(client?.name || 'Unknown'),
+              escape(client?.cnic),
+              escape(client?.riskScore),
+              escape(loan.id),
+              escape(loan.type),
+              escape(loan.amount),
+              escape(loan.status),
+              escape(outstanding)
           ].join(',');
       });
       

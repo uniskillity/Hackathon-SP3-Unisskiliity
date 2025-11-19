@@ -25,9 +25,7 @@ const ChatWidget: React.FC = () => {
             if (session) {
                 chatSessionRef.current = session;
             } else {
-                 // Do not clutter chat with error immediately, just log it.
-                 // The error message will be shown if the user tries to send a message.
-                 console.warn("Gemini Chat Session could not be initialized. Check API Key.");
+                 console.warn("Gemini Chat Session could not be initialized. Using Offline Demo Mode.");
             }
         }
     }, [isOpen]);
@@ -35,6 +33,17 @@ const ChatWidget: React.FC = () => {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    const getMockResponse = (text: string): string => {
+        const lower = text.toLowerCase();
+        if (lower.includes('loan')) return "I can help you with loan management. You can create new loans in the Client Details view or track repayment schedules.";
+        if (lower.includes('risk')) return "Risk scoring is automatic based on client data (income, occupation, household size). High risk clients are flagged.";
+        if (lower.includes('default') || lower.includes('late')) return "The system uses AI to predict default probability based on payment history. You can view this in the Loan details.";
+        if (lower.includes('hello') || lower.includes('hi')) return "Hello! How can I assist you with the Microfinance system today?";
+        if (lower.includes('export')) return "You can export the portfolio report from the Dashboard using the 'Export Report' button.";
+        if (lower.includes('client')) return "You can add new clients using the '+ New' button in the client list.";
+        return "I am currently in Offline Demo Mode because the AI service is unavailable. Please connect a valid API Key for full conversational capabilities.";
+    };
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,20 +60,28 @@ const ChatWidget: React.FC = () => {
                  chatSessionRef.current = createChatSession();
             }
 
-            if (!chatSessionRef.current) {
-                // Explicit error if initialization failed
-                 setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'AI service is currently unavailable. Please check your system configuration or internet connection.' }]);
-                 setIsLoading(false);
-                 return;
+            let responseText = '';
+
+            if (chatSessionRef.current) {
+                 try {
+                    const result = await chatSessionRef.current.sendMessage({ message: userMsg.text });
+                    responseText = result.text;
+                 } catch (apiError) {
+                     console.warn("API call failed, falling back to demo mode", apiError);
+                     responseText = getMockResponse(userMsg.text);
+                 }
+            } else {
+                // Fallback if session creation failed (e.g. no API key)
+                // Simulate a small network delay for realism
+                await new Promise(resolve => setTimeout(resolve, 600));
+                responseText = getMockResponse(userMsg.text);
             }
 
-            const result = await chatSessionRef.current.sendMessage({ message: userMsg.text });
-            const text = result.text;
-             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: text }]);
+             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: responseText }]);
 
         } catch (error) {
             console.error("Chat error", error);
-             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'Sorry, I encountered an error connecting to the AI service. Please try again later.' }]);
+             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'Sorry, an unexpected error occurred.' }]);
         } finally {
             setIsLoading(false);
         }
