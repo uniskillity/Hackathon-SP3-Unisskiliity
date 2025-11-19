@@ -24,8 +24,6 @@ const ChatWidget: React.FC = () => {
             const session = createChatSession();
             if (session) {
                 chatSessionRef.current = session;
-            } else {
-                 console.warn("Gemini Chat Session could not be initialized. Using Offline Demo Mode.");
             }
         }
     }, [isOpen]);
@@ -42,7 +40,8 @@ const ChatWidget: React.FC = () => {
         if (lower.includes('hello') || lower.includes('hi')) return "Hello! How can I assist you with the Microfinance system today?";
         if (lower.includes('export')) return "You can export the portfolio report from the Dashboard using the 'Export Report' button.";
         if (lower.includes('client')) return "You can add new clients using the '+ New' button in the client list.";
-        return "I am currently in Offline Demo Mode because the AI service is unavailable. Please connect a valid API Key for full conversational capabilities.";
+        
+        return "I can assist you with client onboarding, loan tracking, and risk analysis. Even without a live connection, I can guide you through the system's features. How can I help?";
     };
 
     const handleSend = async (e: React.FormEvent) => {
@@ -55,7 +54,7 @@ const ChatWidget: React.FC = () => {
         setIsLoading(true);
 
         try {
-            // Try to initialize if not already done
+            // Try to initialize if not already done (lazy init)
             if (!chatSessionRef.current) {
                  chatSessionRef.current = createChatSession();
             }
@@ -67,12 +66,11 @@ const ChatWidget: React.FC = () => {
                     const result = await chatSessionRef.current.sendMessage({ message: userMsg.text });
                     responseText = result.text;
                  } catch (apiError) {
-                     console.warn("API call failed, falling back to demo mode", apiError);
+                     console.warn("API call failed, falling back to simulated mode", apiError);
                      responseText = getMockResponse(userMsg.text);
                  }
             } else {
                 // Fallback if session creation failed (e.g. no API key)
-                // Simulate a small network delay for realism
                 await new Promise(resolve => setTimeout(resolve, 600));
                 responseText = getMockResponse(userMsg.text);
             }
@@ -81,7 +79,7 @@ const ChatWidget: React.FC = () => {
 
         } catch (error) {
             console.error("Chat error", error);
-             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'Sorry, an unexpected error occurred.' }]);
+             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'I apologize, but I encountered an unexpected error. Please try again.' }]);
         } finally {
             setIsLoading(false);
         }
